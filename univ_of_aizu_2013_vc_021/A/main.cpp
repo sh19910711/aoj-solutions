@@ -126,18 +126,18 @@ namespace solution {
     
   protected:
     static String generate_sub_fizzbuzz( const Int& s ) {
-      Int lb = 0;
-      Int ub = 1000000000000000000LL + 11LL;
+      Int lb = 1;
+      Int ub = 1000000000000000000LL;
       while ( ub - lb > 1 ) {
         Int mid = ( lb + ub ) / 2;
-        if ( get_characters(mid) >= s ) {
-          ub = mid;
-        } else {
+        if ( get_characters(mid) < s ) {
           lb = mid;
+        } else {
+          ub = mid;
         }
       }
 
-      Int offset = s - get_characters(lb) - 1;
+      Int offset = s - get_characters(lb - 1) - 1;
       String tmp = "";
       for ( Int i = lb; i < lb + 100; ++ i ) {
         tmp += get_fizzbuzz_string(i);
@@ -160,27 +160,20 @@ namespace solution {
       return "";
     }
 
-    // [1, x)で何文字分進むか求める
+    // [1, x]で何文字分進むか求める
     static Int get_characters( const Int& x ) {
-      Int nx = x - 1;
-      Int digits = std::log10(nx);
-      Int k = 10;
       Int res = 0;
-      for ( Int i = 0; i <= digits; ++ i ) {
-        res += get_characters_in_digit(std::min(x, k));
+      Int k = 1;
+      Int d = 1;
+      while ( k <= x ) {
+        Int nx = std::min(k * 10, x);
+        Int y = k - 1;
+        res += ( get_not_fizz_bizz(nx) - get_not_fizz_bizz(y) ) * d;
         k *= 10;
+        d += 1;
       }
+      res += ( x / 3 + x / 5 ) * 4;
       return res;
-    }
-
-    // [10...0, x)で何文字分進むか求める
-    static Int get_characters_in_digit( const Int& x ) {
-      Int nx = x - 1;
-      Int digits = std::log10(nx) + 1;
-      Int nines = std::pow(10, digits) - 1;
-      Int y = nines / 10;
-      return digits * ( get_not_fizz_bizz(nx) - get_not_fizz_bizz(y) )
-        + 4 * ( nx / 3 + nx / 5 - ( y / 3 + y / 5 ) );
     }
 
     // not-fizzbuzz number in [1, x]

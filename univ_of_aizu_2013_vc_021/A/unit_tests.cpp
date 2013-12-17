@@ -24,8 +24,9 @@ public:
 };
 
 TEST(Test, Test) {
-  ASSERT_EQ(21, SolverTest::get_characters(10));
-  ASSERT_EQ(309, SolverTest::get_characters(100));
-  ASSERT_EQ(165, SolverTest::get_characters(55));
-  ASSERT_EQ(2836, SolverTest::get_characters(777));
+  ASSERT_EQ(1, SolverTest::get_characters(1));
+  ASSERT_EQ(21, SolverTest::get_characters(9));
+  ASSERT_EQ(309, SolverTest::get_characters(99));
+  ASSERT_EQ(165, SolverTest::get_characters(54));
+  ASSERT_EQ(2836, SolverTest::get_characters(776));
 }

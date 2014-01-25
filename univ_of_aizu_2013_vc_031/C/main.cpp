@@ -232,7 +232,6 @@ namespace solution {
     }
     
     Tokens::iterator eval_no_bracket( Tokens::iterator it_begin, Tokens::iterator it_end ) {
-      // cout << "@eval_no_bracket: before: "; show_tokens(true);
       // *, /
       for ( Tokens::iterator it_i = it_begin; it_i != it_end; ++ it_i ) {
         Tokens::iterator cur = it_i;
@@ -269,7 +268,6 @@ namespace solution {
         }
       }
       
-      // cout << "@eval_no_bracket: after *, /: "; show_tokens(true);
       
       // +, -
       for ( Tokens::iterator it_i = it_begin; it_i != it_end; ++ it_i ) {
@@ -303,27 +301,18 @@ namespace solution {
         }
       }
       
-      // cout << "@eval_no_bracket: after +, -: "; show_tokens(true);
-      
       return it_begin;
     }
     
     Tokens::iterator remove_brackets( Tokens::iterator it_begin, Tokens::iterator it_end ) {
-      // cout << "@remove_brackets: ";
-      for ( Tokens::iterator it_i = it_begin; it_i != it_end; ++ it_i ) {
-        // cout << *it_i;
-      }
-      // cout << endl;
       Tokens::iterator it_i = it_begin;
       it_i ++;
       string token = *it_i;
-      // cout << "tokens before = "; show_tokens(true);
       it_i --;
       it_end --;
       while ( it_i != it_end )
         it_i = tokens.erase(it_i);
       *it_i = token;
-      // cout << "tokens after = "; show_tokens(true);
       return it_i;
     }
     
@@ -351,11 +340,8 @@ namespace solution {
     Int run() {
       mod = in->p;
       generate_tokens(in->exp);
-      // cout << endl;
-      // cout << "before eval: "; show_tokens(true);
       eval(tokens.begin());
       eval_no_bracket(tokens.begin(), tokens.end());
-      // cout << "after eval: "; show_tokens(true);
       return to_int(*tokens.begin());
     }
   };

@@ -78,26 +78,27 @@ namespace solution {
   };
 }
 
+// @snippet<sh19910711/contest:math/extgcd.cpp>
 namespace math {
+  // 拡張ユークリッド互除法: a*x+b*y=gcd(x,y)
   template <class T> T extgcd( T a, T b, T& x, T& y ) {
-    T d = a;
-    if ( b != 0 ) {
-      d = extgcd(b, a % b, y, x);
-      y -= ( a / b ) * x;
-    } else {
-      x = 1;
-      y = 0;
+    for ( T u = y = 1, v = x = 0; a; ) {
+      T q = b / a;
+      std::swap( x -= q * u, u );
+      std::swap( y -= q * v, v );
+      std::swap( b -= q * a, a );
     }
-    return d;
+    return b;
   }
 }
 
 // @snippet<sh19910711/contest:math/mod_inverse.cpp>
 namespace math {
+  // @desc mod mでaの逆元を求める
   template <class T> T mod_inverse( T a, T m ) {
     T x, y;
     extgcd( a, m, x, y );
-    // x %= m;
+    x %= m;
     while ( x < 0 )
       x += m;
     return x;
@@ -161,8 +162,9 @@ namespace solution {
     }
     
     void generate_tokens( const string& s ) {
-      if ( s.empty() )
+      if ( s.empty() ) {
         return;
+      }
       tokens.clear();
       string tmp = "";
       tmp += *s.begin();
@@ -185,8 +187,9 @@ namespace solution {
     void show_tokens( bool no_endl = false ) {
       for ( Tokens::iterator it_i = tokens.begin(); it_i != tokens.end(); ++ it_i ) {
         cout << *it_i;
-        if ( ! no_endl )
+        if ( ! no_endl ) {
           cout << endl;
+        }
       }
       cout << endl;
     }
@@ -219,7 +222,7 @@ namespace solution {
       std::istringstream iss(s);
       Int res;
       iss >> res;
-      return res;
+      return res % mod;
     }
     
     string to_string( const Int& x ) {
@@ -228,9 +231,10 @@ namespace solution {
       return oss.str();
     }
     
-    Tokens::iterator eval_no_bracket( Tokens::iterator begin, Tokens::iterator end ) {
+    Tokens::iterator eval_no_bracket( Tokens::iterator it_begin, Tokens::iterator it_end ) {
+      // cout << "@eval_no_bracket: before: "; show_tokens(true);
       // *, /
-      for ( Tokens::iterator it_i = begin; it_i != end; ++ it_i ) {
+      for ( Tokens::iterator it_i = it_begin; it_i != it_end; ++ it_i ) {
         Tokens::iterator cur = it_i;
         if ( is_multiple_operator(cur) ) {
           Tokens::iterator prev = cur;
@@ -255,7 +259,7 @@ namespace solution {
           if ( n_next == 0 ) {
             throw ZERO_DIVIDED;
           }
-          Int n_next_inv = math::mod_inverse(n_next, mod);
+          Int n_next_inv = math::mod_inverse(n_next, mod) % mod;
           Int result = ( n_prev * n_next_inv ) % mod;
           *prev = to_string(result);
           it_i = tokens.erase(it_i);
@@ -265,8 +269,10 @@ namespace solution {
         }
       }
       
+      // cout << "@eval_no_bracket: after *, /: "; show_tokens(true);
+      
       // +, -
-      for ( Tokens::iterator it_i = begin; it_i != end; ++ it_i ) {
+      for ( Tokens::iterator it_i = it_begin; it_i != it_end; ++ it_i ) {
         Tokens::iterator cur = it_i;
         if ( is_plus_operator(cur) ) {
           Tokens::iterator prev = cur;
@@ -288,7 +294,6 @@ namespace solution {
           next ++;
           Int n_prev = to_int(*prev) % mod;
           Int n_next = to_int(*next) % mod;
-          Int n_next_inv = math::mod_inverse(n_next, mod);
           Int result = ( mod + n_prev - n_next ) % mod;
           *prev = to_string(result);
           it_i = tokens.erase(it_i);
@@ -297,23 +302,45 @@ namespace solution {
           it_i --;
         }
       }
-
-      return begin;
+      
+      // cout << "@eval_no_bracket: after +, -: "; show_tokens(true);
+      
+      return it_begin;
     }
     
-    Tokens::iterator eval_brackets( Tokens::iterator cur, Tokens::iterator& last_open_bracket ) {
-      for ( Tokens::iterator it_i = cur; it_i != tokens.end(); ++ it_i ) {
+    Tokens::iterator remove_brackets( Tokens::iterator it_begin, Tokens::iterator it_end ) {
+      // cout << "@remove_brackets: ";
+      for ( Tokens::iterator it_i = it_begin; it_i != it_end; ++ it_i ) {
+        // cout << *it_i;
+      }
+      // cout << endl;
+      Tokens::iterator it_i = it_begin;
+      it_i ++;
+      string token = *it_i;
+      // cout << "tokens before = "; show_tokens(true);
+      it_i --;
+      it_end --;
+      while ( it_i != it_end )
+        it_i = tokens.erase(it_i);
+      *it_i = token;
+      // cout << "tokens after = "; show_tokens(true);
+      return it_i;
+    }
+    
+    Tokens::iterator eval( Tokens::iterator start ) {
+      for ( Tokens::iterator it_i = start; it_i != tokens.end(); ++ it_i ) {
         if ( is_open_bracket(it_i) ) {
           Tokens::iterator it_next = it_i;
           it_next ++;
-          Tokens::iterator it_bracket_end = eval_brackets(it_next, it_i);
-          Tokens::iterator it_ret = eval_no_bracket(it_next, it_bracket_end);
-          it_ret --;
-          it_ret = tokens.erase(it_ret);
+          Tokens::iterator it_ret = eval(it_next);
+
+          // eval internal
+          it_i = eval_no_bracket(it_i, it_ret);
+
+          it_next = it_i;
           it_ret ++;
-          it_ret = tokens.erase(it_ret);
-          it_ret --;
-          it_i = it_ret;
+          it_i = remove_brackets(it_next, it_ret);
+          it_i --;
         } else if ( is_close_bracket(it_i) ) {
           return it_i;
         }
@@ -322,18 +349,13 @@ namespace solution {
     }
     
     Int run() {
-      // cout << endl;
       mod = in->p;
       generate_tokens(in->exp);
-      // show_tokens();
-      Tokens::iterator it_begin = tokens.begin();
-      Tokens::iterator it_begin = tokens.end();
-      eval_brackets(it_begin);
-      it_begin = tokens.begin();
-      Tokens::iterator it_end = tokens.end();
-      // show_tokens(true);
-      eval_no_bracket(it_begin, it_end);
-      // show_tokens(true);
+      // cout << endl;
+      // cout << "before eval: "; show_tokens(true);
+      eval(tokens.begin());
+      eval_no_bracket(tokens.begin(), tokens.end());
+      // cout << "after eval: "; show_tokens(true);
       return to_int(*tokens.begin());
     }
   };
@@ -367,11 +389,9 @@ namespace solution {
       string line;
       std::getline(std::cin, line);
       line = remove_spaces(line);
-      if ( line == "0:" )
-        return false;
       std::replace(line.begin(), line.end(), ':', ' ');
       std::istringstream iss(line);
-      return iss >> in->p >> in->exp;
+      return iss >> in->p >> in->exp && in->p;
     }
     void output( const OutputStorage* out ) {
       if ( out->result == RESULT_NG ) {
@@ -409,6 +429,7 @@ int main() {
   return solution.run();
 }
 #endif
+
 
 
 

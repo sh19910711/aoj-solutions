@@ -116,6 +116,88 @@ namespace solution {
   };
 }
 
+namespace geometry {
+  typedef long double Double;
+  Double sq( const Double& x ) { return x * x; }
+  template <class VectorDim> struct VectorInterface {
+    virtual ~VectorInterface() {}
+    virtual VectorDim operator +( const VectorDim& ) = 0;
+    virtual VectorDim operator -( const VectorDim& ) = 0;
+    virtual VectorDim operator *( const Double& ) = 0;
+    virtual VectorDim operator /( const Double& ) = 0;
+    virtual Double get_dot( const VectorDim& ) = 0;
+    virtual Double get_norm() = 0;
+  };
+}
+
+namespace geometry {
+  typedef std::tuple<Double, Double, Double> Vector3DBase;
+  struct Vector3D: Vector3DBase, VectorInterface<Vector3D> {
+    // using Vector3DBase::tuple;
+    Vector3D() {}
+    Vector3D( const Double& a, const Double& b, const Double& c ) {
+      this->get_x() = a;
+      this->get_y() = b;
+      this->get_z() = c;
+    }
+    Vector3D( const Vector3DBase& v ) {
+      *this = v;
+    }
+    Double& get_x() { return std::get<0>(*this); }
+    const Double& get_x() const { return std::get<0>(*this); }
+    Double& get_y() { return std::get<1>(*this); }
+    const Double& get_y() const { return std::get<1>(*this); }
+    Double& get_z() { return std::get<2>(*this); }
+    const Double& get_z() const { return std::get<2>(*this); }
+    
+    Vector3D operator +( const Vector3D& v ) {
+      return Vector3D(this->get_x() + v.get_x(), this->get_y() + v.get_y(), this->get_z() + v.get_z());
+    }
+    
+    Vector3D operator -( const Vector3D& v ) {
+      return Vector3D(this->get_x() - v.get_x(), this->get_y() - v.get_y(), this->get_z() - v.get_z());
+    }
+    
+    Vector3D operator *( const Double& k ) {
+      return Vector3D(this->get_x() * k, this->get_y() * k, this->get_z() * k);
+    }
+    
+    Vector3D operator /( const Double& k ) {
+      return Vector3D(this->get_x() / k, this->get_y() / k, this->get_z() / k);
+    }
+    
+    Double get_dot( const Vector3D& v ) {
+      return this->get_x() * v.get_x() + this->get_y() * v.get_y() + this->get_z() * v.get_z();
+    }
+    
+    Vector3D get_cross( const Vector3D& v ) {
+      return Vector3D(
+        this->get_y() * v.get_z() - this->get_z() * v.get_y(),
+        this->get_z() * v.get_x() - this->get_x() * v.get_z(),
+        this->get_x() * v.get_y() - this->get_y() * v.get_x()
+      );
+    }
+    
+    Double get_norm() {
+      return sq(this->get_x()) + sq(this->get_y()) + sq(this->get_z());
+    }
+  };
+}
+
+namespace geometry {
+  namespace vector_helpers {
+    template <class Point> Point get_middle( Point a, Point b ) {
+      return ( a + b ) / 2.0;
+    }
+    
+    template <class Vector, class Point> Point get_project( Point a, Point b, Point p ) {
+      Vector base = b - a;
+      Double k = (p - a).get_dot(base) / base.get_norm();
+      return a + base * k;
+    }
+  }
+}
+
 // @snippet<sh19910711/contest-base:solution/template-primitive-types.cpp>
 namespace solution {
   typedef long long Int;
@@ -136,6 +218,7 @@ namespace solution {
 namespace solution {
   // namespaces, types
   using namespace utils;
+  using namespace geometry;
   typedef std::array<Double, MAX_D> DoubleArray;
   typedef std::array<DoubleArray, MAX_V> DoubleTable;
 }
@@ -154,44 +237,67 @@ namespace solution {
   
 }
 
-namespace geometry {
-  typedef long double Double;
-
-  typedef std::tuple<Double, Double> Vector2DBase;
-  struct Vector2D: Vector2DBase {
-    using Vector2DBase::tuple;
-    Double& get_x() { return std::get<0>(*this); }
-    const Double& get_x() const { return std::get<0>(*this); }
-    Double& get_y() { return std::get<1>(*this); }
-    const Double& get_y() const { return std::get<1>(*this); }
-  };
-
-  typedef std::tuple<Double, Double, Double> Vector3DBase;
-  struct Vector3D: Vector3DBase {
-    using Vector3DBase::tuple;
-    Double& get_x() { return std::get<0>(*this); }
-    const Double& get_x() const { return std::get<0>(*this); }
-    Double& get_y() { return std::get<1>(*this); }
-    const Double& get_y() const { return std::get<1>(*this); }
-    Double& get_z() { return std::get<2>(*this); }
-    const Double& get_z() const { return std::get<2>(*this); }
-  };
-
-  template <class Point> Point get_middle( Point a, Point b ) {
-    return ( a + b ) / 2.0;
-  }
-}
-
 // @snippet<sh19910711/contest-base:solution/template-solver-area.cpp>
 namespace solution {
   struct Solver: SolverInterface {
     const Output* solve( const Input* in, Output* out ) {
-      out->result = is_intersect(in->S, in->T, in->P);
+      out->result = ! is_intersect(in->S, in->T, in->P);
       return out;
     }
 
-    static bool is_intersect( const DoubleArray& S, const DoubleArray& T, const DoubleTable& P ) {
+    // 三角形abcと点pの距離
+    template <class Vector> static Double get_distance( Vector va, Vector vb, Vector vc, Vector vp ) {
+      Vector v_ab = vb - va;
+      Vector v_bc = vc - vb;
+      Vector v_n = v_ab.get_cross(v_bc);
+      v_n = v_n / std::sqrt(v_n.get_norm());
+      return std::abs(v_n.get_dot(va - vp)) / std::sqrt(v_n.get_norm());
+    }
+
+    // a <= b
+    static bool less_than_equal( const Double& a, const Double& b ) {
+      if ( std::abs( a - b ) < 1e-9 )
+        return true;
+      return a < b;
+    }
+
+    template <class Vector> static bool is_intersect( Vector va, Vector vb, Vector vc, Vector vp ) {
+      Vector vab = vb - va;
+      Vector vbp = vp - vb;
+      Vector vbc = vc - vb;
+      Vector vcp = vp - vc;
+      Vector vca = va - vc;
+      Vector vap = vp - va;
+      Vector vn = vab.get_cross(vbc);
+      vn = vn / std::sqrt(vn.get_norm());
+      Double cross_1 = vn.get_cross(vab).get_dot(vap);
+      Double cross_2 = vn.get_cross(vbc).get_dot(vbp);
+      Double cross_3 = vn.get_cross(vca).get_dot(vcp);
+      if ( less_than_equal(0, cross_1) && less_than_equal(0, cross_2) && less_than_equal(0, cross_3) )
+        return true;
+      if ( less_than_equal(cross_1, 0) && less_than_equal(cross_2, 0) && less_than_equal(cross_3, 0) )
+        return true;
       return false;
+    }
+    
+    static bool is_intersect( const DoubleArray& S, const DoubleArray& T, const DoubleTable& P ) {
+      Vector3D vs(S[0], S[1], S[2]);
+      Vector3D vt(T[0], T[1], T[2]);
+      Vector3D vp[3];
+      for ( auto i = 0; i < MAX_V; ++ i ) {
+        vp[i] = Vector3D(P[i][0], P[i][1], P[i][2]);
+      }
+      Vector3D vn = ( vp[1] - vp[0] ).get_cross( vp[2] - vp[1] );
+      vn = vn / std::sqrt(vn.get_norm());
+      Double ds = get_distance(vp[0], vp[1], vp[2], vs);
+      Double dt = get_distance(vp[0], vp[1], vp[2], vt);
+      if ( std::abs(dt) < 1e-9 )
+        return true;
+      if ( less_than_equal(0.0, vn.get_dot(vs - vp[0]) * vn.get_dot(vt - vp[0])) )
+        return false;
+      Double k = ds / ( ds + dt );
+      Vector3D vx(vs + ( vt - vs ) * k);
+      return is_intersect(vp[0], vp[1], vp[2], vx);
     }
   };
 }
@@ -266,4 +372,5 @@ namespace utils {
 // @snippet<sh19910711/contest:utils.cpp>
 
 // @snippet<sh19910711/contest-base:main.cpp>
+
 

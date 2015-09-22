@@ -1,0 +1,31 @@
+5 5
+S....
+.....
+.....
+.....
+....G
+
+5 5
+Sxxxx
+xxxxx
+xxxxx
+xxxxx
+xxxxG
+
+4 5
+S#...
+.#.#.
+.#.#.
+...#G
+
+4 5
+S#ooo
+o#o#o
+o#o#o
+ooo#G
+
+4 5
+G####
+ooxoo
+##x#o
+Soooo
